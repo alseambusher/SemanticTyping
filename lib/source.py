@@ -3,6 +3,7 @@ import json
 import csv
 from column import Column
 
+
 class Source:
     def __init__(self, name):
         self.name = name

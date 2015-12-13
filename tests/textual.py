@@ -11,7 +11,7 @@ def tfidf(train_examples, test_examples):
     return cosine(value[0], value[1])
 
 
-def soft_tfidf(trainExamples, testExamples):
+def soft_tfidf(train_examples, test_examples):
     pass
 
 
