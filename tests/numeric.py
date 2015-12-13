@@ -1,5 +1,4 @@
 __author__ = 'alse'
-from scipy.stats import kstest
 from pyspark.mllib.stat import Statistics
 import random
 from scipy.stats import mannwhitneyu, f_oneway, ks_2samp
