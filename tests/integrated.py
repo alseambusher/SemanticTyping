@@ -1,5 +1,10 @@
+from sympy import content
+from tests.label import ContentLengthTest, LabelTextTest
+from tests.textual import *
+
 __author__ = 'alse'
 import re
+from numeric import *
 
 class IntegratedTest:
     IS_NUMERIC = "IS_NUM"
@@ -27,7 +32,7 @@ class IntegratedTest:
     tfidfScoreMap = None
     numericRegEx = re.compile("^((\\-)?[0-9]{1,3}(,[0-9]{3})+(\\.[0-9]+)?)|((\\-)?[0-9]*\\.[0-9]+)|((\\-)?[0-9]+)|((\\-)?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?)$")
 
-    def __init__(self, trueLabel, testExamples, textualExampleMap, histogramExampleMap, numericExampleMap, metaExampleMap, isNumeric):
+    def __init__(self, trueLabel, testExamples, textualExampleMap, histogramExampleMap, numericExampleMap, metaExampleMap, isNumeric, sc):
         self.testExamples = testExamples
         self.textualExampleMap = textualExampleMap
         self.histogramExampleMap = histogramExampleMap
@@ -35,6 +40,7 @@ class IntegratedTest:
         self.metaExampleMap = metaExampleMap
         self.isNumeric = isNumeric
         self.trueLabel, self.name = trueLabel.split("!")[:2]
+        self.sc = sc
 
     def get_all_feature_vectors(self):
         instanceMap = {}
@@ -55,20 +61,36 @@ class IntegratedTest:
 
         return instanceMap
 
-    def get_feature_vector(self):
+    def get_feature_vector(self):  # TODO
         return None
 
     def test_histogram(self, label):
-        pass
+        histestExamples = IntegratedTest.get_distribution(self.testExamples)
+        self.resultMap[self.KS_TEST] = KolmogorovSmirnovTest(self.numericExampleMap[label], histestExamples, self.sc)
+        self.resultMap[self.KS_TEST] = MannWhitneyNumTest(self.numericExampleMap[label], histestExamples, self.sc)
+
 
     def test_numeric(self, label):
-        pass
-
-    def test_textual(self, label):
-        pass
+        if not self.isNumeric or not self.numericExampleMap.has_key(label):
+            self.resultMap[self.KS_TEST] = 0.0
+            self.resultMap[self.MW_NUM_TEST] = 0.0
+        else:
+            examples = self.clean_examples_numeric(self.testExamples)  # TODO see if we can do this only once
+            self.resultMap[self.KS_TEST] = KolmogorovSmirnovTest(self.numericExampleMap[label], examples, self.sc)
+            self.resultMap[self.KS_TEST] = MannWhitneyNumTest(self.numericExampleMap[label], examples, self.sc)
 
     def test_label(self, label):
-        pass
+        self.resultMap[self.LBL_ABBR_TEST] = abbr_test(self.metaExampleMap[label], self.name)
+        self.resultMap[self.LBL_TEST] = LabelTextTest(self.metaExampleMap[label], self.name)
+        self.resultMap[self.VALUE_SIZE] = ContentLengthTest(self.metaExampleMap[label], self.name)
+
+    def test_textual(self, label):
+        if not self.numericExampleMap.has_key(label):
+            self.resultMap[self.SOFT_TFIDF_TEST] = 0.0
+            self.resultMap[self.ABBR_TEST] = 0.0
+        else:
+            self.resultMap[self.SOFT_TFIDF_TEST] = tfidf(self.textualExampleMap[label], self.testExamples)
+            self.resultMap[self.ABBR_TEST] = abbr_test(self.textualExampleMap[label], self.testExamples)
 
     def clean_examples_numeric(self, examples):
         cleaned = []

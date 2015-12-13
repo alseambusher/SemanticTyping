@@ -1,7 +1,6 @@
 __author__ = 'alse'
 import re
 
-
 def ContentLengthTest(trainMetas, testExamples):
     maxLength = 0.0
     minLength = 1000.0
@@ -22,5 +21,13 @@ def ContentLengthTest(trainMetas, testExamples):
     return abs(sumLength * 1.0 / len(testExamples) - avgLength)
 
 
-def LabelTextTest(trainMetas, testLabel):  # TODO
-    pass
+def jaccard_similarity(x,y):
+    intersection_cardinality = len(set.intersection(*[set(x), set(y)]))
+    union_cardinality = len(set.union(*[set(x), set(y)]))
+    return intersection_cardinality/float(union_cardinality)
+
+
+def LabelTextTest(trainMetas, testLabel):  # TODO check if this is right
+    return max([jaccard_similarity(x.label.split(), testLabel.split()) for x in trainMetas])
+
+

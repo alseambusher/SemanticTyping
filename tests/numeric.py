@@ -2,13 +2,14 @@ __author__ = 'alse'
 from scipy.stats import kstest
 from pyspark.mllib.stat import Statistics
 import random
-from scipy.stats import mannwhitneyu, f_oneway
+from scipy.stats import mannwhitneyu, f_oneway, ks_2samp
 
 def KolmogorovSmirnovTest(trainExamples, testExamples, sc):
     sample1 = sc.parallalize(random.sample(testExamples, 100 if len(testExamples) > 100 else len(testExamples)))
     sample2 = sc.parallalize(random.sample(trainExamples, 100 if len(trainExamples) > 100 else len(trainExamples)))
     if len(sample1) > 1 and len(sample2) > 1:
-        return Statistics.kolmogorovSmirnovTest(sample1, "norm", 0, 1).pValue
+        return ks_2samp(sample1, sample2)
+        #return Statistics.kolmogorovSmirnovTest(sample1, "norm", 0, 1).pValue
     return 0.0
 
 
