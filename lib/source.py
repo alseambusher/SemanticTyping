@@ -39,3 +39,15 @@ class Source:
             for row in reader:
                 for header in row.iterkeys():
                     self.columnMap[header].add_value(row[header])
+
+    def read_data_from_json(self, file_path):
+        json_array = json.load(file_path)
+        for node in json_array:
+            for field in node.keys():
+                if field in self.columnMap:
+                    column = Column(field)
+                    self.columnMap[field] = column
+                if isinstance(json[field], list):
+                    self.columnMap[field].valueList.extend(node[field])
+                else:
+                    self.columnMap[field].valueList.append(node[field])
