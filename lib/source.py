@@ -7,7 +7,7 @@ from column import Column
 class Source:
     def __init__(self, name):
         self.name = name
-        self.columnMap = {}
+        self.column_map = {}
 
     def get_name(self):
         return self.name
@@ -16,7 +16,7 @@ class Source:
         self.name = name
 
     def get_column_map(self):
-        return self.columnMap
+        return self.column_map
 
     def read_semantic_type_json(self, file_path):
         data = json.load(file_path)
@@ -28,27 +28,27 @@ class Source:
                 name = node["columnName"]
                 domain = semantic_object[0]["domain"]["uri"]
                 type = semantic_object[0]["type"]["uri"]
-                self.columnMap[name] = domain + "---" + type
+                self.column_map[name] = domain + "---" + type
 
     def read_data_from_csv(self, file_path):  # TODO what if there is no header
         with open(file_path) as csvfile:
             reader = csv.DictReader(csvfile)
             headers = reader.fieldnames()
             for header in headers:
-                self.columnMap[header] = Column(header)
+                self.column_map[header] = Column(header)
 
             for row in reader:
                 for header in row.iterkeys():
-                    self.columnMap[header].add_value(row[header])
+                    self.column_map[header].add_value(row[header])
 
     def read_data_from_json(self, file_path):
         json_array = json.load(file_path)
         for node in json_array:
             for field in node.keys():
-                if field in self.columnMap:
+                if field in self.column_map:
                     column = Column(field)
-                    self.columnMap[field] = column
+                    self.column_map[field] = column
                 if isinstance(json[field], list):
-                    self.columnMap[field].valueList.extend(node[field])
+                    self.column_map[field].valueList.extend(node[field])
                 else:
-                    self.columnMap[field].valueList.append(node[field])
+                    self.column_map[field].valueList.append(node[field])

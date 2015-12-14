@@ -16,19 +16,20 @@ def content_length_test(train_metas, test_examples):
 
     sum_length = 0
 
-    for example in test_examples:
-        sum_length += len(re.split(r'\\s+', example))  # TODO test this
+    sum_length += len(" ".join(test_examples).split())
 
     return abs(sum_length * 1.0 / len(test_examples) - avg_length)
 
 
-def jaccard_similarity(x,y):
+def jaccard_similarity(x, y):
     intersection_cardinality = len(set.intersection(*[set(x), set(y)]))
     union_cardinality = len(set.union(*[set(x), set(y)]))
-    return intersection_cardinality/float(union_cardinality)
+    return intersection_cardinality / float(union_cardinality)
+
+
+def get_n_grams(sentence, n):
+    return [sentence[i:i + n] for i in xrange(len(sentence) - n)]
 
 
 def label_text_test(train_metas, test_label):  # TODO check if this is right
-    return max([jaccard_similarity(x.label.split(), test_label.split()) for x in train_metas])
-
-
+    return max([jaccard_similarity(get_n_grams(x, 2), get_n_grams(test_label, 2)) for x in train_metas])
