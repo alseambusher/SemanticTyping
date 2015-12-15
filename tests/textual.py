@@ -1,7 +1,8 @@
-__author__ = 'alse'
 import re
 from sklearn.feature_extraction.text import TfidfVectorizer
 from scipy.spatial.distance import cosine
+
+__author__ = 'alse'
 
 
 def tfidf(train_examples, test_examples):

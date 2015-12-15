@@ -1,5 +1,4 @@
 __author__ = 'alse'
-import re
 
 
 def content_length_test(train_metas, test_examples):

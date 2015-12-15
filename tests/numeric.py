@@ -1,7 +1,8 @@
-__author__ = 'alse'
 from pyspark.mllib.stat import Statistics
 import random
 from scipy.stats import mannwhitneyu, f_oneway, ks_2samp
+
+__author__ = 'alse'
 
 
 def kolmogorov_smirnov_test(train_examples, test_examples, sc):
