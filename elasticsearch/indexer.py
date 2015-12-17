@@ -1,4 +1,5 @@
 from lib.utils import Utils
+from main import sc
 
 __author__ = "minh"
 
@@ -8,19 +9,20 @@ class Indexer:
         self.es = es
 
     def index_column(self, column, index_config):
+        column.prepare_data()
         doc_body = {
-            'metadata': {
-                'name': column.name,
-                'semantic_type': column.semantic_type,
-                'content_length': column.content_length,
-                'data_size': len(column.value_list)
-            },
+            'name': column.name,
+            'semantic_type': column.semantic_type,
+            'content_length': column.content_length,
+            'data_size': len(column.value_list),
             'values': column.value_list,
-            'histogram': Utils.get_distribution(column.value_list)}
+            'histogram': column.histogram_list
+        }
         if column.is_numeric():
-            doc_body['numeric'] = Utils.clean_examples_numeric(column.value_list)
+            doc_body['numeric'] = column.numeric_list
+            doc_body['sample_numeric'] = column.sample_list
         else:
-            doc_body['textual'] = " ".join(column.value_list)
+            doc_body['textual'] = column.value_text
 
         self.es.index(index=Utils.get_index_name(index_config), doc_type=column.semantic_type,
                       body=doc_body)
@@ -31,7 +33,7 @@ class Indexer:
 
         if not self.es.search_exists(index=Utils.get_index_name(index_config),
                                      doc_type='semantic', body=doc_body):
-            self.es.index(index=Utils.get_index_name(index_config), doc_type='semantic', id=1,
+            self.es.index(index=Utils.get_index_name(index_config), doc_type='semantic',
                           body=doc_body)
 
     def index_source(self, source, index_config):

@@ -17,17 +17,9 @@ class Source:
         self.index_name = re.sub(Utils.not_allowed_chars, "", self.name)
         self.column_map = {}
 
-    def save(self, es, index_config):
+    def save(self, index_config):
+        index_config['name'] = self.index_name
         indexer.index_source(source=self, index_config=index_config)
-
-    def load(self, es, index_config):
-        result = self.es.search(index="%s!%s" % (self.index_name, index_config),
-                                body={"query": {"match_all": {}}})
-        examples_map = {}
-        for hit in result['hits']['hits']:
-            examples_map[hit['_type']] = hit['_source']
-
-        return examples_map
 
     def read_semantic_type_json(self, file_path):
         with open(file_path, 'r') as f:

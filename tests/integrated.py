@@ -1,3 +1,7 @@
+from collections import OrderedDict
+
+from pyspark.mllib.regression import LabeledPoint
+
 from lib.utils import Utils
 from tests.label import content_length_test, label_text_test
 from tests.textual import *
@@ -33,7 +37,6 @@ class IntegratedTest:
 
     def get_all_feature_vectors(self):
         feature_vectors = {}
-        class_labels = {}
 
         """
             TODO for tfidf score map
@@ -41,20 +44,22 @@ class IntegratedTest:
             Indexer.CONTENT_FIELD_NAME).getTopK(15, sb.toString());
         """
         for label in self.train_examples_map.keys():
-            result_map = {}
+            result_map = OrderedDict()
             self.test_histogram(label, result_map)
             self.test_numeric(label, result_map)
             self.test_textual(label, result_map)
             self.test_label(label, result_map)
 
             if label == self.true_label:
-                class_labels[label] = True
+                class_label = 1
             else:
-                class_labels[label] = False
+                class_label = 0
 
-            feature_vectors[label] = result_map
+            labeled_point = LabeledPoint(class_label, result_map.items())
 
-        return feature_vectors, class_labels
+            feature_vectors[label] = labeled_point
+
+        return feature_vectors
 
     def test_histogram(self, label, result_map):
         hist_examples = Utils.get_distribution(self.test_examples)
