@@ -1,8 +1,12 @@
 import json
 import csv
 from xml.etree import ElementTree
+
+import re
+
 from column import Column
-from tests.integrated import IntegratedTest
+from lib import indexer
+from lib.utils import Utils
 
 __author__ = 'alse'
 
@@ -10,31 +14,20 @@ __author__ = 'alse'
 class Source:
     def __init__(self, name):
         self.name = name
+        self.index_name = re.sub(Utils.not_allowed_chars, "", self.name)
         self.column_map = {}
 
-    def get_name(self):
-        return self.name
-
-    def set_name(self, name):
-        self.name = name
-
-    def get_column_map(self):
-        return self.column_map
-
     def save(self, es, index_config):
-        for column_name in self.column_map.keys():
-            if self.column_map[column_name].semantic_type:
-                doc_body = {
-                    'textual': " ".join(self.column_map[column_name].value_list).decode('unicode_escape').encode(
-                        'ascii', 'ignore'),
-                    'numeric': " ".join(
-                            IntegratedTest.clean_examples_numeric(self.column_map[column_name].value_list)),
-                    'histogram': " ".join(
-                            IntegratedTest.get_distribution(self.column_map[column_name].value_list))}
+        indexer.index_source(source=self, index_config=index_config)
 
-                es.index(index=('%s!%s' % (index_config['name'], index_config['size'])),
-                         doc_type=self.column_map[column_name].semantic_type,
-                         body=doc_body)
+    def load(self, es, index_config):
+        result = self.es.search(index="%s!%s" % (self.index_name, index_config),
+                                body={"query": {"match_all": {}}})
+        examples_map = {}
+        for hit in result['hits']['hits']:
+            examples_map[hit['_type']] = hit['_source']
+
+        return examples_map
 
     def read_semantic_type_json(self, file_path):
         with open(file_path, 'r') as f:

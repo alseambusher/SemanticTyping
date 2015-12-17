@@ -11,8 +11,6 @@ __author__ = 'alse'
 
 
 class SemanticLabeler:
-    not_allowed_chars = '\\/*?"<>|\s\t'
-
     def __init__(self):
         self.source_map = {}
         self.es = Elasticsearch()
@@ -44,12 +42,14 @@ class SemanticLabeler:
     def train_random_forest(self, train_size):
         for idx in range(train_size):
             size = random.randint(1, len(self.source_map) - 1)
-            source_name = self.source_map.keys()()[random.randint(0, len(self.source_map) - 1)]
+            source_name = self.source_map.keys()[random.randint(0, len(self.source_map) - 1)]
             source = self.source_map[source_name]
-            if self.es.exists(index="%s!%s" % (source, size)):
-                examples_map = self.es.search(index="%s!%s" % (source.name, size), body={"query": {"match_all": {}}})
+            if self.es.exists(index="%s!%s" % (source.index_name, size)):
+                examples_map = source.load(self.es, index_config={'size': size})
+
                 for column_name in source.column_map.keys():
                     column = source.column_map[column_name]
+                    column.predict_type(examples_map, is_training=True)
             else:
                 continue
 
@@ -60,7 +60,7 @@ class SemanticLabeler:
                 for source_name in (self.source_map.keys() * 2)[idx + 1: idx + size + 1]:
                     source = self.source_map[source_name]
                     source.save(es=self.es,
-                                index_config={'size': size, 'name': re.sub(self.not_allowed_chars, source.name, "")})
+                                index_config={'size': size})
 
     # TODO
     def test_semantic_types(self):
