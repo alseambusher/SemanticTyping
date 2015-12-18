@@ -4,6 +4,7 @@ from itertools import cycle, repeat
 
 import re
 from elasticsearch import Elasticsearch
+from pyspark.mllib.tree import RandomForest, RandomForestModel
 
 from lib.source import Source
 
@@ -11,7 +12,8 @@ __author__ = 'alse'
 
 
 class SemanticLabeler:
-    def __init__(self):
+    def __init__(self, sc):
+        self.sc = sc
         self.source_map = {}
         self.es = Elasticsearch()
 
@@ -22,7 +24,7 @@ class SemanticLabeler:
         for filename in os.listdir(data_folder_path):
             extension = os.path.splitext(filename)[1]
 
-            source = Source(os.path.splitext(filename)[0])
+            source = Source(os.path.splitext(filename)[0], self.sc)
             file_path = os.path.join(data_folder_path, filename)
 
             if extension == ".csv":

@@ -12,10 +12,11 @@ __author__ = 'alse'
 
 
 class Source:
-    def __init__(self, name):
+    def __init__(self, name, sc):
         self.name = name
         self.index_name = re.sub(Utils.not_allowed_chars, "", self.name)
         self.column_map = {}
+        self.sc = sc
 
     def save(self, es, index_config):
         indexer.index_source(source=self, index_config=index_config)
@@ -47,7 +48,7 @@ class Source:
             reader = csv.DictReader(csv_file)
             headers = reader.fieldnames
             for header in headers:
-                self.column_map[header] = Column(header)
+                self.column_map[header] = Column(header, self.sc)
 
             for row in reader:
                 for header in row.iterkeys():
@@ -59,7 +60,7 @@ class Source:
             for node in json_array:
                 for field in node.keys():
                     if field not in self.column_map:
-                        column = Column(field)
+                        column = Column(field, self.sc)
                         self.column_map[field] = column
                     if isinstance(json[field], list):
                         self.column_map[field].valueList.extend(node[field])
@@ -72,6 +73,6 @@ class Source:
         for child in root:
             for attrib_name in child.attrib.keys():
                 if attrib_name not in self.column_map:
-                    column = Column(attrib_name)
+                    column = Column(attrib_name, self.sc)
                     self.column_map[attrib_name] = column
                 self.column_map[attrib_name].append(child.attrib[attrib_name])

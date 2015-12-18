@@ -7,13 +7,14 @@ __author__ = 'alse'
 
 
 class Column:
-    def __init__(self, name, index_config):
+    def __init__(self, name, index_config, sc):
         self.name = name
         self.value_list = []
         self.semantic_type = None
         self.content_length = 0
         self.numeric_count = 0
         self.index_config = index_config
+        self.sc = sc
 
     def add_value(self, value):
         self.value_list.append(value)
@@ -35,7 +36,7 @@ class Column:
         return sorted(semantic_types)
 
     def generate_candidate_types(self, train_examples_map, vectorizer):
-        integrated_test = IntegratedTest(self, train_examples_map)
+        integrated_test = IntegratedTest(self, train_examples_map, self.sc)
         feature_vectors, class_labels = integrated_test.get_all_feature_vectors()
         for key in feature_vectors.keys():
             feature_vectors[key] = vectorizer.transform([feature_vectors[key]])[0]

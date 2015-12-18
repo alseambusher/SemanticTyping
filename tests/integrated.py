@@ -1,7 +1,6 @@
 from lib.utils import Utils
 from tests.label import content_length_test, label_text_test
 from tests.textual import *
-import re
 from numeric import *
 
 __author__ = 'alse'
@@ -19,7 +18,8 @@ class IntegratedTest:
     LBL_TEST = "LBL"
     VALUE_SIZE = "SIZE"
 
-    feature_names = [IS_NUMERIC, KS_TEST, MW_NUM_TEST, MW_TEST, ANOVA_TEST, SOFT_TFIDF_TEST, ABBR_TEST]
+    feature_names = [ANOVA_TEST, MW_TEST, KS_TEST, MW_NUM_TEST, LBL_ABBR_TEST, LBL_TEST, VALUE_SIZE, SOFT_TFIDF_TEST,
+                     ABBR_TEST]
 
     def __init__(self, column, train_examples_map, sc):
         self.train_examples_map = train_examples_map
@@ -28,62 +28,52 @@ class IntegratedTest:
         self.name = column.name
         self.numeric_test_examples = Utils.clean_examples_numeric(self.test_examples)
         self.is_numeric = column.is_numeric()
+        self.hist_examples = Utils.get_distribution(self.test_examples)
 
         self.sc = sc
 
     def get_all_feature_vectors(self):
         feature_vectors = {}
         class_labels = {}
+        labels = self.train_examples_map.keys()
+        labelsRDD = self.sc.parallalize(labels)
+        # TODO now all the tests for a given label run sequentially. Make them run in parallel
+        tests = labelsRDD.flatMap(
+            lambda x: self.test_histogram(x) + self.test_numeric(x) + self.test_label(x) + self.test_textual(x))
+        results = tests.take(len(self.feature_names)*len(labels))
+        for i in xrange(len(labels)):
 
-        """
-            TODO for tfidf score map
-            List<SemanticTypeLabel> tfidfResults = new Searcher(new IntegratedTypingHandler("semantic-labeling").getIndexDirectory(2),
-            Indexer.CONTENT_FIELD_NAME).getTopK(15, sb.toString());
-        """
-        for label in self.train_examples_map.keys():
-            result_map = {}
-            self.test_histogram(label, result_map)
-            self.test_numeric(label, result_map)
-            self.test_textual(label, result_map)
-            self.test_label(label, result_map)
-
-            if label == self.true_label:
-                class_labels[label] = True
+            if labels[i] == self.true_label:
+                class_labels[labels[i]] = True
             else:
-                class_labels[label] = False
+                class_labels[labels[i]] = False
 
-            feature_vectors[label] = result_map
+            feature_vectors[labels[i]] = results[i*len(self.feature_names): (i+1)*len(self.feature_names)]
 
         return feature_vectors, class_labels
 
-    def test_histogram(self, label, result_map):
-        hist_examples = Utils.get_distribution(self.test_examples)
-        result_map[self.ANOVA_TEST] = anova_test(self.train_examples_map[label]['histogram'], hist_examples,
-                                                 self.sc)
-        result_map[self.MW_TEST] = mann_whitney_num_test(self.train_examples_map[label]['histogram'], hist_examples,
-                                                         self.sc)
+    def test_histogram(self, label):
+        hist_examples = self.hist_examples
+        return anova_test(self.train_examples_map[label]['histogram'], hist_examples), mann_whitney_num_test(
+            self.train_examples_map[label]['histogram'], hist_examples)
 
-    def test_numeric(self, label, result_map):
+    def test_numeric(self, label):
         if not self.is_numeric or not self.train_examples_map[label]['numeric']:
-            result_map[self.KS_TEST] = 0.0
-            result_map[self.MW_NUM_TEST] = 0.0
+            return 0.0, 0.0
         else:
-            result_map[self.KS_TEST] = kolmogorov_smirnov_test(self.train_examples_map[label]['numeric'],
-                                                               self.numeric_test_examples, self.sc)
-            result_map[self.MW_NUM_TEST] = mann_whitney_num_test(self.train_examples_map[label]['numeric'],
-                                                                 self.numeric_test_examples, self.sc)
+            return kolmogorov_smirnov_test(self.train_examples_map[label]['numeric'],
+                                           self.numeric_test_examples), mann_whitney_num_test(
+                self.train_examples_map[label]['numeric'],
+                self.numeric_test_examples)
 
-    def test_label(self, label, result_map):
-        result_map[self.LBL_ABBR_TEST] = abbr_test(self.train_examples_map[label]['meta'], self.name)
-        result_map[self.LBL_TEST] = label_text_test(self.train_examples_map[label]['meta'], self.name)
-        result_map[self.VALUE_SIZE] = content_length_test(self.train_examples_map[label]['meta'], self.name)
+    def test_label(self, label):
+        return abbr_test(self.train_examples_map[label]['meta'], self.name), label_text_test(
+            self.train_examples_map[label]['meta'], self.name), content_length_test(
+            self.train_examples_map[label]['meta'], self.name)
 
-    def test_textual(self, label, result_map):
+    def test_textual(self, label):
         if self.is_numeric:
-            result_map[self.SOFT_TFIDF_TEST] = 0.0
-            result_map[self.ABBR_TEST] = 0.0
+            return 0.0, 0.0
         else:
-            result_map[self.SOFT_TFIDF_TEST] = tfidf(self.train_examples_map[label]['textual'], self.test_examples)
-            result_map[self.ABBR_TEST] = abbr_test(self.train_examples_map[label]['textual'], self.test_examples)
-
-
+            return tfidf(self.train_examples_map[label]['textual'], self.test_examples), abbr_test(
+                self.train_examples_map[label]['textual'], self.test_examples)
