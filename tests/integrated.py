@@ -1,3 +1,7 @@
+from collections import OrderedDict
+
+from pyspark.mllib.regression import LabeledPoint
+
 from lib.utils import Utils
 from tests.label import content_length_test, label_text_test
 from tests.textual import *
@@ -34,7 +38,6 @@ class IntegratedTest:
 
     def get_all_feature_vectors(self):
         feature_vectors = {}
-        class_labels = {}
         labels = self.train_examples_map.keys()
         labelsRDD = self.sc.parallalize(labels)
         # TODO now all the tests for a given label run sequentially. Make them run in parallel
@@ -44,13 +47,15 @@ class IntegratedTest:
         for i in xrange(len(labels)):
 
             if labels[i] == self.true_label:
-                class_labels[labels[i]] = True
+                class_label = 1
             else:
-                class_labels[labels[i]] = False
+                class_label = 0
 
-            feature_vectors[labels[i]] = results[i*len(self.feature_names): (i+1)*len(self.feature_names)]
+            labeled_point = LabeledPoint(class_label, results[i*len(self.feature_names): (i+1)*len(self.feature_names)])
 
-        return feature_vectors, class_labels
+            feature_vectors[labels[i]] = labeled_point
+
+        return feature_vectors
 
     def test_histogram(self, label):
         hist_examples = self.hist_examples

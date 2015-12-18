@@ -1,5 +1,7 @@
 import re
 
+from main import sc
+
 __author__ = 'minh'
 
 
@@ -14,33 +16,19 @@ class Utils:
     @staticmethod
     def is_number(example):
         matches = re.match(Utils.numeric_regex, example.strip())
-        if matches and len(matches.span()[1]) == len(example.strip()):
+        if matches and matches.span()[1] == len(example.strip()):
             return True
         return False
 
     @staticmethod
     def clean_examples_numeric(examples):
-        cleaned = []
-        for example in examples:
-            matches = re.match(Utils.numeric_regex, example.strip())
-            if matches and len(matches.span()[1]) == len(example.strip()):
-                cleaned.append(str(float(example.strip())))
-        return cleaned
+        return sc.parallelize(examples).map(lambda x: float(x) if Utils.is_number(x) else "").filter(
+                lambda x: x).collect()
 
     @staticmethod
     def get_distribution(data):
-        distribution_map = {}
-        for entry in data:
-            if entry in distribution_map:
-                distribution_map[entry] += 1
-            else:
-                distribution_map[entry] = 1.0
-
-        sample_list = []
-        for idx, distribution in enumerate(sorted(distribution_map.values())):
-            sample_list.extend([str(idx)] * int(distribution / len(data) * 100))
-            # TODO add pseudo datasets to check if this is scales
-        return sample_list
+        return sc.parallelize(data).map(lambda word: (word, 1)).reduceByKey(lambda a, b: a + b).sortBy(
+            lambda x: x).zipWithIndex().flatMap(lambda value, idx: [str(idx)] * int(value/len(data) * 100))
 
     @staticmethod
     def get_index_name(index_config):
